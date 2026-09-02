@@ -4,6 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import { randomUUID } from 'node:crypto';
 import Enquiry from './models/Enquiry.js';
 import TempleContent from './models/TempleContent.js';
@@ -26,6 +27,20 @@ let memorySections = defaultSections;
 let memoryEvents = [];
 let dbReady = false;
 const jwtSecret = process.env.JWT_SECRET;
+const mailer = process.env.SMTP_USER && process.env.SMTP_APP_PASSWORD
+  ? nodemailer.createTransport({ service:'gmail', auth:{ user:process.env.SMTP_USER, pass:process.env.SMTP_APP_PASSWORD } })
+  : null;
+async function sendEnquiryEmail(enquiry) {
+  if (!mailer) return;
+  const recipients = (process.env.ENQUIRY_RECIPIENTS || 'saharanpuriskcon@gmail.com,sundaranandadas.gkg@gmail.com').split(',').map(item=>item.trim()).filter(Boolean);
+  await mailer.sendMail({
+    from: `ISKCON Saharanpur Website <${process.env.SMTP_USER}>`,
+    to: recipients,
+    replyTo: String(enquiry.contact || '').includes('@') ? enquiry.contact : undefined,
+    subject: `New website enquiry from ${enquiry.name}`,
+    text: `Name: ${enquiry.name}\nContact: ${enquiry.contact}\n\nMessage:\n${enquiry.message || '(No message)'}\n\nThis enquiry is also saved in the admin panel.`,
+  });
+}
 function requireAdmin(req, res, next) {
   if (!jwtSecret) return res.status(503).json({ message: 'Admin authentication is not configured.' });
   try { req.admin = jwt.verify((req.headers.authorization || '').replace('Bearer ', ''), jwtSecret); next(); }
@@ -39,7 +54,15 @@ app.get('/api/content', async (_req, res) => {
   res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, sections:{...defaultSections,...(content?.sections||{})} });
 });
 app.post('/api/enquiries', async (req, res) => {
-  try { const enquiry = await Enquiry.create(req.body); res.status(201).json({ id: enquiry.id }); }
+  try {
+    const enquiry = await Enquiry.create({
+      name:String(req.body.name || '').slice(0,120),
+      contact:String(req.body.contact || '').slice(0,180),
+      message:String(req.body.message || '').slice(0,3000),
+    });
+    sendEnquiryEmail(enquiry).catch(error=>console.warn('Enquiry email failed.', error?.message || 'Unknown email error'));
+    res.status(201).json({ id: enquiry.id });
+  }
   catch (error) { res.status(400).json({ message: error instanceof Error ? error.message : 'Unable to save enquiry' }); }
 });
 app.post('/api/admin/login', async (req, res) => {
@@ -53,7 +76,8 @@ app.get('/api/admin/content', requireAdmin, async (_req, res) => {
   if (!dbReady) return res.json({ schedule:memorySchedule, events:memoryEvents, sections:memorySections, storage:'temporary-memory' });
   const content = await TempleContent.findOne({ key:'main' }).lean();
   const events = await TempleEvent.find().sort({ date:1 }).lean();
-  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, sections:{...defaultSections,...(content?.sections||{})} });
+  const enquiries = await Enquiry.find().sort({ createdAt:-1 }).limit(250).lean();
+  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, enquiries, sections:{...defaultSections,...(content?.sections||{})} });
 });
 app.put('/api/admin/sections', requireAdmin, async (req, res) => {
   const sections = req.body.sections && typeof req.body.sections === 'object' ? req.body.sections : {};
@@ -70,6 +94,16 @@ app.put('/api/admin/schedule', requireAdmin, async (req, res) => {
 app.post('/api/admin/events', requireAdmin, async (req, res) => { try { if(!dbReady){const event={...req.body,_id:randomUUID()};memoryEvents.push(event);return res.status(201).json(event);} res.status(201).json(await TempleEvent.create(req.body)); } catch(error) { res.status(400).json({message:error.message}); } });
 app.put('/api/admin/events/:id', requireAdmin, async (req, res) => { try { if(!dbReady){const index=memoryEvents.findIndex(item=>item._id===req.params.id);if(index<0)return res.status(404).json({message:'Event not found.'});memoryEvents[index]={...memoryEvents[index],...req.body,_id:req.params.id};return res.json(memoryEvents[index]);} res.json(await TempleEvent.findByIdAndUpdate(req.params.id, req.body, {new:true,runValidators:true})); } catch(error) { res.status(400).json({message:error.message}); } });
 app.delete('/api/admin/events/:id', requireAdmin, async (req, res) => { if(!dbReady){memoryEvents=memoryEvents.filter(item=>item._id!==req.params.id);return res.status(204).end();} await TempleEvent.findByIdAndDelete(req.params.id); res.status(204).end(); });
+app.patch('/api/admin/enquiries/:id', requireAdmin, async (req, res) => {
+  const status = ['new','read','replied'].includes(req.body.status) ? req.body.status : 'read';
+  const enquiry = await Enquiry.findByIdAndUpdate(req.params.id, { status }, { new:true, runValidators:true });
+  if (!enquiry) return res.status(404).json({ message:'Enquiry not found.' });
+  res.json(enquiry);
+});
+app.delete('/api/admin/enquiries/:id', requireAdmin, async (req, res) => {
+  await Enquiry.findByIdAndDelete(req.params.id);
+  res.status(204).end();
+});
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`API running on port ${port}`));
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/iskcon-saharanpur')

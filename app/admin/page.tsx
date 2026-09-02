@@ -1,11 +1,12 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import { CalendarDays, Clock3, LogOut, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Clock3, Inbox, LogOut, Mail, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iskcon-saharanpur-api.onrender.com';
 type ScheduleItem = { time: string; name: string };
 type TempleEvent = { _id?: string; title: string; date: string; description: string };
+type Enquiry = { _id:string; name:string; contact:string; message?:string; status:'new'|'read'|'replied'; createdAt:string };
 type Sections = Record<string, Record<string, string>>;
 const defaultSections: Sections = {
   hero:{eyebrow:'Hare Krishna • Welcome home',title:'Find joy in',accent:'devotion.',body:'A sacred space in Saharanpur to chant, learn, serve and grow together in Krishna consciousness.'},
@@ -21,6 +22,7 @@ export default function AdminPage() {
   const [token, setToken] = useState('');
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [events, setEvents] = useState<TempleEvent[]>([]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [sections, setSections] = useState<Sections>(defaultSections);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,7 @@ export default function AdminPage() {
       const data = await response.json();
       setSchedule(data.schedule || []);
       setEvents(data.events || []);
+      setEnquiries(data.enquiries || []);
       if (data.sections) setSections(current=>({...current,...data.sections}));
       if (data.storage === 'temporary-memory') setMessage('Local preview mode: changes reset when the API restarts. Connect MongoDB for permanent storage.');
     } catch { logout(); setMessage('The content API is offline. Start the Express server and try again.'); }
@@ -87,9 +90,20 @@ export default function AdminPage() {
     setEvents(current=>current.filter((_,i)=>i!==index)); setMessage('Event removed.');
   }
 
+  async function setEnquiryStatus(id:string, status:Enquiry['status']) {
+    const response = await fetch(`${apiUrl}/api/admin/enquiries/${id}`, { method:'PATCH', headers:auth, body:JSON.stringify({status}) });
+    if (response.ok) setEnquiries(items=>items.map(item=>item._id===id?{...item,status}:item));
+  }
+
+  async function removeEnquiry(id:string) {
+    const response = await fetch(`${apiUrl}/api/admin/enquiries/${id}`, { method:'DELETE', headers:auth });
+    if (response.ok) setEnquiries(items=>items.filter(item=>item._id!==id));
+  }
+
   if (!token) return <main className="admin-shell login-shell"><section className="login-card"><div className="admin-logo"><ShieldCheck/><span>Temple Developer Area</span></div><p className="eyebrow dark">ISKCON Saharanpur</p><h1>Content sign in</h1><p>Authorized temple staff can update public darshan timings and events here.</p><form onSubmit={login}><label>Email<input name="email" type="email" required autoComplete="username"/></label><label>Password<input name="password" type="password" required autoComplete="current-password"/></label>{message&&<p className="form-message error">{message}</p>}<button className="button gold" disabled={loading}>{loading?'Signing in…':'Sign in securely'}</button></form><a href="/">← Return to website</a></section></main>;
 
-  return <main className="admin-shell"><aside className="admin-sidebar"><a className="brand light" href="/"><img className="brand-logo" src="/Logo%20(1)/iskcon_logo.svg" alt="ISKCON logo"/><span><b>ISKCON</b><small>SAHARANPUR</small></span></a><nav><a href="#page-content"><Save/> Page content</a><a href="#darshan"><Clock3/> Darshan timings</a><a href="#events"><CalendarDays/> Upcoming events</a></nav><button onClick={logout}><LogOut/> Sign out</button></aside><section className="admin-main"><header><div><p className="eyebrow dark">Temple developer area</p><h1>Content dashboard</h1></div><span className="status-dot">Connected</span></header>{message&&<div className="admin-notice">{message}</div>}
+  return <main className="admin-shell"><aside className="admin-sidebar"><a className="brand light" href="/"><img className="brand-logo" src="/Logo%20(1)/iskcon_logo.svg" alt="ISKCON logo"/><span><b>ISKCON</b><small>SAHARANPUR</small></span></a><nav><a href="#enquiries"><Inbox/> Enquiries</a><a href="#page-content"><Save/> Page content</a><a href="#darshan"><Clock3/> Darshan timings</a><a href="#events"><CalendarDays/> Upcoming events</a></nav><button onClick={logout}><LogOut/> Sign out</button></aside><section className="admin-main"><header><div><p className="eyebrow dark">Temple developer area</p><h1>Content dashboard</h1></div><span className="status-dot">Connected</span></header>{message&&<div className="admin-notice">{message}</div>}
+    <section className="admin-panel" id="enquiries"><div className="panel-heading"><div><Inbox/><span><h2>Enquiry inbox</h2><p>Messages submitted through the public website.</p></span></div><span className="inquiry-count">{enquiries.filter(item=>item.status==='new').length} new</span></div><div className="inquiry-list">{enquiries.length===0&&<div className="empty-state">No enquiries received yet.</div>}{enquiries.map(item=><article className={`inquiry-card ${item.status==='new'?'is-new':''}`} key={item._id}><div className="inquiry-meta"><span className={`inquiry-status ${item.status}`}>{item.status}</span><time>{new Date(item.createdAt).toLocaleString('en-IN')}</time></div><h3>{item.name}</h3><a className="inquiry-contact" href={item.contact.includes('@')?`mailto:${item.contact}`:`tel:${item.contact.replace(/\s/g,'')}`}><Mail size={15}/>{item.contact}</a><p>{item.message||'No message provided.'}</p><div className="inquiry-actions"><button className="add-button" onClick={()=>setEnquiryStatus(item._id,'read')}>Mark read</button><button className="add-button" onClick={()=>setEnquiryStatus(item._id,'replied')}><CheckCircle2 size={16}/> Replied</button><button className="delete-button" onClick={()=>removeEnquiry(item._id)}><Trash2 size={16}/> Delete</button></div></article>)}</div></section>
     <section className="admin-panel" id="page-content"><div className="panel-heading"><div><Save/><span><h2>Website headings & content</h2><p>Edit the main text displayed across the public website.</p></span></div><button className="button gold" onClick={saveSections} disabled={loading}><Save size={17}/> Save all content</button></div><div className="content-editor">
       {Object.entries(sections).map(([section,fields])=><fieldset className="content-group" key={section}><legend>{section}</legend>{Object.entries(fields).map(([field,value])=><label key={field}>{field}{['body','address'].includes(field)?<textarea rows={field==='body'?4:3} value={value} onChange={e=>updateSection(section,field,e.target.value)}/>:<input value={value} onChange={e=>updateSection(section,field,e.target.value)}/>}</label>)}</fieldset>)}
     </div></section>
