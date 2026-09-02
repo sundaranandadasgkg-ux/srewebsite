@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { CalendarDays, Clock3, LogOut, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iskcon-saharanpur-api.onrender.com';
 type ScheduleItem = { time: string; name: string };
 type TempleEvent = { _id?: string; title: string; date: string; description: string };
 type Sections = Record<string, Record<string, string>>;

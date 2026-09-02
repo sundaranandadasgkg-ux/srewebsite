@@ -13,7 +13,7 @@ const defaultSections = {
   connect:{eyebrow:'Stay connected',title:'Begin your bhakti journey.',body:'Receive program updates, festival invitations and opportunities to serve with the Saharanpur community.'},
   footer:{tagline:'Chant • Dance • Feast • Serve'},
 };
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iskcon-saharanpur-api.onrender.com';
 const programs = [
   { icon: Music2, title: 'Sunday Love Feast', text: 'An uplifting evening of kirtan, wisdom and sanctified vegetarian prasadam for everyone.' },
   { icon: BookOpen, title: 'Bhagavad-gita Study', text: 'Explore Krishna’s timeless teachings through practical, welcoming weekly discussions.' },
