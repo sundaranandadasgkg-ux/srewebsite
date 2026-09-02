@@ -90,7 +90,8 @@ export default function AdminPage() {
     setSavingEvent(index); setMessage('');
     try {
       const response = await fetch(endpoint, { method:item._id?'PUT':'POST', headers:auth, body:JSON.stringify(item) });
-      if (response.ok) { setMessage('✓ Event saved successfully.'); await load(token); } else setMessage('Could not save event. Please check all fields.');
+      const data = await response.json().catch(()=>({}));
+      if (response.ok) { setMessage('✓ Event saved successfully.'); await load(token); } else setMessage(`Could not save event: ${data.message || 'Please check all fields.'}`);
     } catch { setMessage('Could not save event. The server may be waking up—please try again.'); }
     setSavingEvent(null);
   }
