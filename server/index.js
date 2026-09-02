@@ -11,7 +11,7 @@ import TempleContent from './models/TempleContent.js';
 import TempleEvent from './models/TempleEvent.js';
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000' }));
-app.use(express.json());
+app.use(express.json({ limit:'3mb' }));
 const defaultSchedule = [{time:'04:30 AM',name:'Mangala Arati'},{time:'07:30 AM',name:'Darshan Arati and Guru Puja'},{time:'08:00 AM',name:'Srimad Bhagavatam Class'},{time:'12:30 PM',name:'Rajbhog Arati'},{time:'01:00 PM',name:'Temple Closed'},{time:'04:30 PM',name:'Temple Reopens / Utthapan Arati'},{time:'06:30 PM',name:'Gaura Arati'},{time:'08:00 PM',name:'Temple Closed'}];
 const defaultSections = {
   hero:{ eyebrow:'Hare Krishna • Welcome home', title:'Find joy in', accent:'devotion.', body:'A sacred space in Saharanpur to chant, learn, serve and grow together in Krishna consciousness.' },

@@ -5,7 +5,7 @@ import { CalendarDays, CheckCircle2, Clock3, Inbox, LogOut, Mail, Plus, Save, Sh
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://iskcon-saharanpur-api.onrender.com';
 type ScheduleItem = { time: string; name: string };
-type TempleEvent = { _id?: string; title: string; date: string; description: string };
+type TempleEvent = { _id?: string; title: string; date: string; description: string; image?: string };
 type Enquiry = { _id:string; name:string; contact:string; message?:string; status:'new'|'read'|'replied'; createdAt:string };
 type Sections = Record<string, Record<string, string>>;
 const defaultSections: Sections = {
@@ -90,6 +90,14 @@ export default function AdminPage() {
     setEvents(current=>current.filter((_,i)=>i!==index)); setMessage('Event removed.');
   }
 
+  function uploadEventImage(index:number, file?:File) {
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > 1500000) return setMessage('Please choose an image smaller than 1.5 MB.');
+    const reader = new FileReader();
+    reader.onload = () => setEvents(items=>items.map((item,i)=>i===index?{...item,image:String(reader.result)}:item));
+    reader.readAsDataURL(file);
+  }
+
   async function setEnquiryStatus(id:string, status:Enquiry['status']) {
     const response = await fetch(`${apiUrl}/api/admin/enquiries/${id}`, { method:'PATCH', headers:auth, body:JSON.stringify({status}) });
     if (response.ok) setEnquiries(items=>items.map(item=>item._id===id?{...item,status}:item));
@@ -108,6 +116,6 @@ export default function AdminPage() {
       {Object.entries(sections).map(([section,fields])=><fieldset className="content-group" key={section}><legend>{section}</legend>{Object.entries(fields).map(([field,value])=><label key={field}>{field}{['body','address'].includes(field)?<textarea rows={field==='body'?4:3} value={value} onChange={e=>updateSection(section,field,e.target.value)}/>:<input value={value} onChange={e=>updateSection(section,field,e.target.value)}/>}</label>)}</fieldset>)}
     </div></section>
     <section className="admin-panel" id="darshan"><div className="panel-heading"><div><Clock3/><span><h2>Darshan schedule</h2><p>Displayed publicly in the Daily Worship section.</p></span></div><button className="button gold" onClick={saveSchedule} disabled={loading}><Save size={17}/> Save changes</button></div><div className="schedule-editor">{schedule.map((item,index)=><div className="edit-row" key={index}><input aria-label="Time" value={item.time} onChange={e=>setSchedule(s=>s.map((x,i)=>i===index?{...x,time:e.target.value}:x))}/><input aria-label="Arati name" value={item.name} onChange={e=>setSchedule(s=>s.map((x,i)=>i===index?{...x,name:e.target.value}:x))}/><button aria-label="Remove timing" onClick={()=>setSchedule(s=>s.filter((_,i)=>i!==index))}><Trash2/></button></div>)}</div><button className="add-button" onClick={()=>setSchedule([...schedule,{time:'',name:''}])}><Plus/> Add timing</button></section>
-    <section className="admin-panel" id="events"><div className="panel-heading"><div><CalendarDays/><span><h2>Upcoming events</h2><p>Create, edit or remove public temple events.</p></span></div><button className="add-button" onClick={()=>setEvents([...events,{title:'',date:'',description:''}])}><Plus/> New event</button></div><div className="event-editor">{events.length===0&&<div className="empty-state">No upcoming events yet. Add the first one when ready.</div>}{events.map((item,index)=><article className="event-edit-card" key={item._id||index}><label>Event title<input value={item.title} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,title:e.target.value}:x))}/></label><label>Date<input type="date" value={item.date?.slice(0,10)} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,date:e.target.value}:x))}/></label><label className="full">Description<textarea rows={3} value={item.description} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,description:e.target.value}:x))}/></label><div className="event-actions"><button className="button gold" onClick={()=>saveEvent(index)}><Save size={16}/> Save event</button><button className="delete-button" onClick={()=>removeEvent(index)}><Trash2 size={16}/> Remove</button></div></article>)}</div></section>
+    <section className="admin-panel" id="events"><div className="panel-heading"><div><CalendarDays/><span><h2>Upcoming events</h2><p>Create, edit or remove public temple events.</p></span></div><button className="add-button" onClick={()=>setEvents([...events,{title:'',date:'',description:'',image:''}])}><Plus/> New event</button></div><div className="event-editor">{events.length===0&&<div className="empty-state">No upcoming events yet. Add the first one when ready.</div>}{events.map((item,index)=><article className="event-edit-card" key={item._id||index}><label>Event title<input value={item.title} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,title:e.target.value}:x))}/></label><label>Date<input type="date" value={item.date?.slice(0,10)} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,date:e.target.value}:x))}/></label><label className="full">Description<textarea rows={3} value={item.description} onChange={e=>setEvents(s=>s.map((x,i)=>i===index?{...x,description:e.target.value}:x))}/></label><label className="full event-upload">Event image (JPG, PNG or WebP — max 1.5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>uploadEventImage(index,e.target.files?.[0])}/></label>{item.image&&<div className="event-image-preview"><img src={item.image} alt="Event preview"/><button className="delete-button" onClick={()=>setEvents(s=>s.map((x,i)=>i===index?{...x,image:''}:x))}><Trash2 size={15}/> Remove image</button></div>}<div className="event-actions"><button className="button gold" onClick={()=>saveEvent(index)}><Save size={16}/> Save event</button><button className="delete-button" onClick={()=>removeEvent(index)}><Trash2 size={16}/> Remove</button></div></article>)}</div></section>
   </section></main>;
 }
