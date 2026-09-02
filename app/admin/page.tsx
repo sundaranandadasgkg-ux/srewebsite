@@ -109,11 +109,11 @@ export default function AdminPage() {
     reader.onload = () => {
       const image = new Image();
       image.onload = () => {
-        const scale = Math.min(1, 1400 / Math.max(image.width, image.height));
+        const scale = Math.min(1, 900 / Math.max(image.width, image.height));
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
         canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const compressed = canvas.toDataURL('image/jpeg', .78);
+        const compressed = canvas.toDataURL('image/jpeg', .65);
         setEvents(items=>items.map((item,i)=>i===index?{...item,image:compressed}:item));
         setMessage('✓ Image ready. Now click “Save event” to publish it.');
       };
