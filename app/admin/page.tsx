@@ -12,7 +12,7 @@ const defaultSections: Sections = {
   about:{eyebrow:'A place for every soul',title:'Come as you are. Leave with a lighter heart.',body:''},
   programs:{eyebrow:'Ways to connect',title:'Devotion, shared.',body:''},
   worship:{eyebrow:'Daily worship',title:'Pause the world. Meet the divine.',body:''},
-  visit:{eyebrow:'Visit ISKCON Saharanpur',title:'Your journey begins here.',address:'',phone:'+91 88004 37973',email:'saharanpuriskcon@gmail.com',email2:'sundaranandadas.gkg@gmail.com'},
+  visit:{eyebrow:'Visit ISKCON Saharanpur',title:'Your journey begins here.',address:'ISKCON Saharanpur, Janata Road, next to Janaki Dham Colony, near Dreams College, Sarkari Sheikh, Saharanpur',phone:'+91 88004 37973',email:'saharanpuriskcon@gmail.com',email2:'sundaranandadas.gkg@gmail.com'},
   connect:{eyebrow:'Stay connected',title:'Begin your bhakti journey.',body:''},
   footer:{tagline:'Chant • Dance • Feast • Serve'},
 };

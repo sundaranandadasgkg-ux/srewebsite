@@ -17,7 +17,7 @@ const defaultSections = {
   about:{ eyebrow:'A place for every soul', title:'Come as you are. Leave with a lighter heart.', body:'ISKCON Saharanpur is a spiritual home inspired by the teachings of His Divine Grace A.C. Bhaktivedanta Swami Prabhupada. Everyone is welcome—whether you are curious, seeking peace, or already walking the path of bhakti.' },
   programs:{ eyebrow:'Ways to connect', title:'Devotion, shared.', body:'Simple, joyful practices that bring timeless wisdom into everyday life.' },
   worship:{ eyebrow:'Daily worship', title:'Pause the world. Meet the divine.', body:'Join us for darshan, arati and the uplifting sound of the maha-mantra. Festival timings may vary; please call before travelling.' },
-  visit:{ eyebrow:'Visit ISKCON Saharanpur', title:'Your journey begins here.', address:'Bajoria Road, Remount Depot Area\nSaharanpur, Uttar Pradesh 247001', phone:'+91 88004 37973', email:'saharanpuriskcon@gmail.com', email2:'sundaranandadas.gkg@gmail.com' },
+  visit:{ eyebrow:'Visit ISKCON Saharanpur', title:'Your journey begins here.', address:'ISKCON Saharanpur, Janata Road, next to Janaki Dham Colony, near Dreams College, Sarkari Sheikh, Saharanpur', phone:'+91 88004 37973', email:'saharanpuriskcon@gmail.com', email2:'sundaranandadas.gkg@gmail.com' },
   connect:{ eyebrow:'Stay connected', title:'Begin your bhakti journey.', body:'Receive program updates, festival invitations and opportunities to serve with the Saharanpur community.' },
   footer:{ tagline:'Chant • Dance • Feast • Serve' },
 };
