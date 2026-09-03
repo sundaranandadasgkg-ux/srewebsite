@@ -10,7 +10,18 @@ import Enquiry from './models/Enquiry.js';
 import TempleContent from './models/TempleContent.js';
 import TempleEvent from './models/TempleEvent.js';
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000' }));
+const allowedOrigins = new Set([
+  'http://localhost:3000',
+  'https://iskconsaharanpur.org',
+  'https://www.iskconsaharanpur.org',
+  'https://saharanpur-hare-krishna.sundaranandadas-gkg.chatgpt.site',
+  'https://iskcon-saharanpur-staging.sundaranandadas-gkg.chatgpt.site',
+  ...(process.env.CLIENT_ORIGIN || '').split(',').map(item=>item.trim()).filter(Boolean),
+]);
+app.use(cors({ origin(origin, callback) {
+  if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+  callback(new Error('This website origin is not allowed.'));
+} }));
 app.use(express.json({ limit:'12mb' }));
 const defaultSchedule = [{time:'04:30 AM',name:'Mangala Arati'},{time:'07:30 AM',name:'Darshan Arati and Guru Puja'},{time:'08:00 AM',name:'Srimad Bhagavatam Class'},{time:'12:30 PM',name:'Rajbhog Arati'},{time:'01:00 PM',name:'Temple Closed'},{time:'04:30 PM',name:'Temple Reopens / Utthapan Arati'},{time:'06:30 PM',name:'Gaura Arati'},{time:'08:00 PM',name:'Temple Closed'}];
 const defaultSections = {
