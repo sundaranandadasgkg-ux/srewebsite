@@ -25,6 +25,7 @@ const defaultSections = {
 let memorySchedule = defaultSchedule;
 let memorySections = defaultSections;
 let memoryEvents = [];
+let memoryGallery = [];
 let dbReady = false;
 const jwtSecret = process.env.JWT_SECRET;
 const mailer = process.env.SMTP_USER && process.env.SMTP_APP_PASSWORD
@@ -48,10 +49,10 @@ function requireAdmin(req, res, next) {
 }
 app.get('/api/health', (_req, res) => res.json({ ok:true, storage:dbReady?'mongodb':'temporary-memory' }));
 app.get('/api/content', async (_req, res) => {
-  if (!dbReady) return res.json({ schedule:memorySchedule, events:memoryEvents, sections:memorySections });
+  if (!dbReady) return res.json({ schedule:memorySchedule, events:memoryEvents, sections:memorySections, gallery:memoryGallery });
   const content = await TempleContent.findOne({ key:'main' }).lean();
   const events = await TempleEvent.find({ date:{ $gte:new Date(new Date().setHours(0,0,0,0)) } }).sort({ date:1 }).lean();
-  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, sections:{...defaultSections,...(content?.sections||{})} });
+  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, sections:{...defaultSections,...(content?.sections||{})}, gallery:content?.gallery||[] });
 });
 app.post('/api/enquiries', async (req, res) => {
   try {
@@ -73,11 +74,11 @@ app.post('/api/admin/login', async (req, res) => {
   res.json({ token:jwt.sign({ role:'admin', email:process.env.ADMIN_EMAIL }, jwtSecret, { expiresIn:'8h' }) });
 });
 app.get('/api/admin/content', requireAdmin, async (_req, res) => {
-  if (!dbReady) return res.json({ schedule:memorySchedule, events:memoryEvents, sections:memorySections, storage:'temporary-memory' });
+  if (!dbReady) return res.json({ schedule:memorySchedule, events:memoryEvents, sections:memorySections, gallery:memoryGallery, storage:'temporary-memory' });
   const content = await TempleContent.findOne({ key:'main' }).lean();
   const events = await TempleEvent.find().sort({ date:1 }).lean();
   const enquiries = await Enquiry.find().sort({ createdAt:-1 }).limit(250).lean();
-  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, enquiries, sections:{...defaultSections,...(content?.sections||{})} });
+  res.json({ schedule:content?.schedule?.length ? content.schedule : defaultSchedule, events, enquiries, sections:{...defaultSections,...(content?.sections||{})}, gallery:content?.gallery||[] });
 });
 app.put('/api/admin/sections', requireAdmin, async (req, res) => {
   const sections = req.body.sections && typeof req.body.sections === 'object' ? req.body.sections : {};
@@ -90,6 +91,18 @@ app.put('/api/admin/schedule', requireAdmin, async (req, res) => {
   if (!dbReady) { memorySchedule = schedule; return res.json({ schedule, storage:'temporary-memory' }); }
   const content = await TempleContent.findOneAndUpdate({ key:'main' }, { key:'main', schedule }, { upsert:true, new:true, runValidators:true });
   res.json(content);
+});
+app.put('/api/admin/gallery', requireAdmin, async (req, res) => {
+  try {
+    const gallery = Array.isArray(req.body.gallery) ? req.body.gallery.slice(0,10).map(item=>({
+      id:String(item.id || randomUUID()),
+      image:String(item.image || ''),
+      alt:String(item.alt || 'ISKCON Saharanpur temple').slice(0,180),
+    })).filter(item=>item.image.startsWith('data:image/') && item.image.length<=2500000) : [];
+    if (!dbReady) { memoryGallery=gallery; return res.json({ gallery, storage:'temporary-memory' }); }
+    const content = await TempleContent.findOneAndUpdate({ key:'main' }, { key:'main', gallery }, { upsert:true, new:true, runValidators:true });
+    res.json({ gallery:content.gallery });
+  } catch(error) { res.status(400).json({message:error.message}); }
 });
 app.post('/api/admin/events', requireAdmin, async (req, res) => { try { if(!dbReady){const event={...req.body,_id:randomUUID()};memoryEvents.push(event);return res.status(201).json(event);} res.status(201).json(await TempleEvent.create(req.body)); } catch(error) { res.status(400).json({message:error.message}); } });
 app.put('/api/admin/events/:id', requireAdmin, async (req, res) => { try { if(!dbReady){const index=memoryEvents.findIndex(item=>item._id===req.params.id);if(index<0)return res.status(404).json({message:'Event not found.'});memoryEvents[index]={...memoryEvents[index],...req.body,_id:req.params.id};return res.json(memoryEvents[index]);} res.json(await TempleEvent.findByIdAndUpdate(req.params.id, req.body, {new:true,runValidators:true})); } catch(error) { res.status(400).json({message:error.message}); } });
